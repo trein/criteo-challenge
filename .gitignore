@@ -1,0 +1,17 @@
+*.swp
+*.pyc
+build
+dist
+*.egg-info
+data/*
+docs/_build
+.project
+.pydevproject
+.base/*
+.idea/*
+.coverage
+.DS_Store
+resources/
+
+ENV/
+criteo/
