@@ -1,6 +1,7 @@
 import json
 import csv
 import constants
+import gzip
 
 HEADER = ('Id,Label,'
           'I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11,I12,I13,'
@@ -27,25 +28,25 @@ selected_categorical_features = [
 
 class DataBuilder(object):
     def __init__(self):
-        with open(constants.CATEGORY_MAPPING_OUT, 'r') as f:
+        with gzip.open(constants.CATEGORY_MAPPING_OUT, 'r') as f:
             self.category_options = json.loads(f.read())
 
-        # with open(constants.CATEGORY_STATUS_OUT, 'r') as f:
-        #     self.category_values = json.loads(f.read())
+        with open(constants.CATEGORY_STATUS_OUT, 'r') as f:
+            self.category_values = json.loads(f.read())
 
     @constants.timed
     def build(self):
-        # train_c_id_to_index = constants.convert_train_c_id_to_index
-        # limit = constants.LIMIT_CATEGORICAL
-        # self._expand_dataset(constants.TRAIN_RAW, constants.TRAIN_EXPANDED, train_c_id_to_index, limit)
+        train_c_id_to_index = constants.convert_train_c_id_to_index
+        limit = constants.LIMIT_CATEGORICAL
+        self._expand_dataset(constants.TRAIN_RAW, constants.TRAIN_EXPANDED, train_c_id_to_index, limit)
 
         test_c_id_to_index = constants.convert_test_c_id_to_index
         limit = constants.LIMIT_CATEGORICAL - 1
         self._expand_dataset(constants.TEST_RAW, constants.TEST_EXPANDED, test_c_id_to_index, limit)
 
     def _expand_dataset(self, raw_file, expanded_file, conversion_func, limit):
-        with open(raw_file, 'r') as source:
-            with open(expanded_file, 'w') as destination:
+        with gzip.open(raw_file, 'r') as source:
+            with gzip.open(expanded_file, 'w') as destination:
                 reader = csv.reader(source)
                 writer = csv.writer(destination)
 
@@ -78,7 +79,7 @@ class DataBuilder(object):
                         options_features = [0] * options_len
 
                         feature_value = feature_vector[cat_index]
-                        option_index = options[feature_value]
+                        option_index = options.get(feature_value, '')
                         options_features[option_index] = 1
                         expanded_feature_vector += options_features
 
@@ -95,14 +96,15 @@ class Categorizer(object):
 
     def _save(self, category_options, category_values):
         # save possible categorical values
-        with open(constants.CATEGORY_MAPPING_OUT, 'w') as f:
+        with gzip.open(constants.CATEGORY_MAPPING_OUT, 'w') as f:
             f.write(json.dumps(category_options))
-        with open(constants.CATEGORY_STATUS_OUT, 'w') as f:
+
+        with gzip.open(constants.CATEGORY_STATUS_OUT, 'w') as f:
             f.write(json.dumps(category_values))
 
     def _worker(self, categories_options, category_values):
         n_sample = 0
-        with open(constants.TRAIN_RAW, 'r') as f:
+        with gzip.open(constants.TRAIN_RAW, 'r') as f:
             reader = csv.reader(f)
             next(reader, None)
             for feature_vector in reader:
