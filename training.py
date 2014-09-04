@@ -15,7 +15,7 @@ class Trainer(object):
         if load:
             self.clf = joblib.load(MODEL_FILENAME)
         else:
-            self.clf = linear_model.SGDRegressor(alpha=1e-7)
+            self.clf = linear_model.SGDRegressor(loss='log', alpha=1e-7)
 
     @constants.timed
     def train(self):
