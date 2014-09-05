@@ -15,7 +15,7 @@ class Trainer(object):
         if load:
             self.clf = joblib.load(MODEL_FILENAME)
         else:
-            self.clf = linear_model.SGDRegressor(loss='log', alpha=1e-7)
+            self.clf = linear_model.SGDRegressor(alpha=1e-7)
 
     @constants.timed
     def train(self):
@@ -32,7 +32,7 @@ class Trainer(object):
                 # ad_id = feature_vector[0]
                 s_features = []
                 for f in feature_vector[2:]:
-                    s_features.append(float(f) if f != '' else 0)
+                    s_features.append(float(f) if f != '' else 0.0)
                 s_label = int(feature_vector[1])
                 features.append(s_features)
                 labels.append(s_label)
@@ -42,7 +42,7 @@ class Trainer(object):
                 # print 'norm features', normalized_features
 
                 n_sample += 1
-                if n_sample % 500000 == 0:
+                if n_sample % 100000 == 0:
                     if first:
                         normalized_features = scaler.fit_transform(features)
                         first = False
