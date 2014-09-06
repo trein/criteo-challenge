@@ -26,25 +26,38 @@ selected_categorical_features = [
 ]
 
 
-class DataBuilder(object):
+class DataSetBuilder(object):
     def __init__(self):
         with gzip.open(constants.CATEGORY_MAPPING_OUT, 'r') as f:
-            self.category_options = json.loads(f.read())
+            self.category_mapping = json.loads(f.read())
 
-        with open(constants.CATEGORY_STATUS_OUT, 'r') as f:
-            self.category_values = json.loads(f.read())
+        with gzip.open(constants.CATEGORY_STATUS_OUT, 'r') as f:
+            self.category_status = json.loads(f.read())
+
+        with gzip.open(constants.INT_STATUS_OUT, 'r') as f:
+            self.int_status = json.loads(f.read())
 
     @constants.timed
     def build(self):
+        print 'Starting dataset assembly...'
+
+        print 'Building training set'
         train_c_id_to_index = constants.convert_train_c_id_to_index
+        train_i_id_to_index = constants.convert_train_i_id_to_index
         limit = constants.LIMIT_CATEGORICAL
-        self._expand_dataset(constants.TRAIN_RAW, constants.TRAIN_EXPANDED, train_c_id_to_index, limit)
+        train_raw_file = constants.TRAIN_RAW
+        train_expanded_file = constants.TRAIN_EXPANDED
+        self._expand_dataset(train_raw_file, train_expanded_file, train_c_id_to_index, train_i_id_to_index, limit)
 
+        print 'Building test set'
         test_c_id_to_index = constants.convert_test_c_id_to_index
+        test_i_id_to_index = constants.convert_test_i_id_to_index
         limit = constants.LIMIT_CATEGORICAL - 1
-        self._expand_dataset(constants.TEST_RAW, constants.TEST_EXPANDED, test_c_id_to_index, limit)
+        test_raw_file = constants.TEST_RAW
+        test_expanded_file = constants.TEST_EXPANDED
+        self._expand_dataset(test_raw_file, test_expanded_file, test_c_id_to_index, test_i_id_to_index, limit)
 
-    def _expand_dataset(self, raw_file, expanded_file, conversion_func, limit):
+    def _expand_dataset(self, raw_file, expanded_file, cat_conversion_func, int_conversion_func, limit):
         with gzip.open(raw_file, 'r') as source:
             with gzip.open(expanded_file, 'w') as destination:
                 reader = csv.reader(source)
@@ -53,7 +66,7 @@ class DataBuilder(object):
                 # adjusting header
                 header = reader.next()[:limit]
                 for cat_id in selected_categorical_features:
-                    options = self.category_options[cat_id]
+                    options = self.category_mapping[cat_id]
                     options_len = len(options)
                     options_features = [None] * options_len
 
@@ -73,36 +86,58 @@ class DataBuilder(object):
                         print 'Processing sample [%s]' % n_sample
 
                     for cat_id in selected_categorical_features:
-                        cat_index = conversion_func(cat_id)
-                        options = self.category_options[cat_id]
+                        cat_index = cat_conversion_func(cat_id)
+                        options = self.category_mapping[cat_id]
                         options_len = len(options)
                         options_features = [0] * options_len
 
                         feature_value = feature_vector[cat_index]
-                        option_index = options.get(feature_value, '')
+                        option_index = options.get(feature_value, 0)
                         options_features[option_index] = 1
                         expanded_feature_vector += options_features
+
+                    for int_id in constants.INTEGER_IDS:
+                        int_index = int_conversion_func(int_id)
+                        int_status = self.int_status[int_id]
+                        raw_current_value = expanded_feature_vector[int_index]
+                        current_value = float(raw_current_value) if raw_current_value != '' else 0.0
+                        # current_min = int_status[int_id]['min']
+                        current_max = int_status['max']
+                        current_sum = int_status['sum']
+                        current_count = int_status['count']
+
+                        if raw_current_value != '':
+                            expanded_feature_vector[int_index] = current_value / current_max
+                        else:
+                            expanded_feature_vector[int_index] = current_sum / current_count
 
                     writer.writerow(expanded_feature_vector)
 
 
-class Categorizer(object):
+class DataSetAnalysis(object):
     @constants.timed
     def process(self):
-        category_options = {cat_id: {} for cat_id in constants.CATEGORIES_IDS}
-        category_values = {cat_id: 0 for cat_id in constants.CATEGORIES_IDS}
-        self._worker(category_options, category_values)
-        self._save(category_options, category_values)
+        print 'Starting dataset analysis...'
 
-    def _save(self, category_options, category_values):
+        category_mapping = {cat_id: {} for cat_id in constants.CATEGORIES_IDS}
+        category_status = {cat_id: 0 for cat_id in constants.CATEGORIES_IDS}
+        int_status = {int_id: {'max': 0.0, 'min': 1e4, 'count': 0.0, 'sum': 0.0} for int_id in constants.INTEGER_IDS}
+        
+        self._worker(category_mapping, category_status, int_status)
+        self._save(category_mapping, category_status, int_status)
+
+    def _save(self, category_mapping, category_status, int_status):
         # save possible categorical values
         with gzip.open(constants.CATEGORY_MAPPING_OUT, 'w') as f:
-            f.write(json.dumps(category_options))
+            f.write(json.dumps(category_mapping))
 
         with gzip.open(constants.CATEGORY_STATUS_OUT, 'w') as f:
-            f.write(json.dumps(category_values))
+            f.write(json.dumps(category_status))
 
-    def _worker(self, categories_options, category_values):
+        with gzip.open(constants.INT_STATUS_OUT, 'w') as f:
+            f.write(json.dumps(int_status))
+
+    def _worker(self, category_mapping, category_status, int_status):
         n_sample = 0
         with gzip.open(constants.TRAIN_RAW, 'r') as f:
             reader = csv.reader(f)
@@ -112,18 +147,32 @@ class Categorizer(object):
                 n_sample += 1
                 if n_sample % 500000 == 0:
                     print 'Processing sample [%s]' % n_sample
-                    print 'Current values of categories %s' % category_values
+                    print 'Current values of categories %s' % category_status
 
-                for cat_id in constants.CATEGORIES_IDS:
-                    cat_index = constants.convert_train_c_id_to_index(cat_id)
-                    if feature_vector[cat_index] not in categories_options[cat_id]:
-                        categories_options[cat_id][feature_vector[cat_index]] = category_values[cat_id]
-                        category_values[cat_id] += 1
+                for int_id in constants.CATEGORIES_IDS:
+                    cat_index = constants.convert_train_c_id_to_index(int_id)
+                    if feature_vector[cat_index] not in category_mapping[int_id]:
+                        category_mapping[int_id][feature_vector[cat_index]] = category_status[int_id]
+                        category_status[int_id] += 1
+                        
+                for int_id in constants.INTEGER_IDS:
+                    int_index = constants.convert_train_i_id_to_index(int_id)
+                    raw_current_value = feature_vector[int_index]
+                    current_value = float(raw_current_value) if raw_current_value != '' else 0.0
+                    current_min = int_status[int_id]['min']
+                    current_max = int_status[int_id]['max']
+                    if raw_current_value != '':
+                        int_status[int_id]['count'] += 1
+                        if current_value > current_max:
+                            int_status[int_id]['max'] = current_value
+                        if current_value < current_min:
+                            int_status[int_id]['min'] = current_value
+                    int_status[int_id]['sum'] += current_value
 
 
 def main():
-    Categorizer().process()
-    DataBuilder().build()
+    DataSetAnalysis().process()
+    DataSetBuilder().build()
 
 
 if __name__ == '__main__':

@@ -55,7 +55,7 @@ class Trainer(object):
                     print 'Processing sample [%s]' % n_sample
 
         print 'Finished training'
-        print 'Estimator parameters [%s]' % self.clf.get_params()
+        print 'Estimated parameters [%s]' % self.clf.get_params()
 
         # saving model into file
         joblib.dump(self.clf, MODEL_FILENAME, compress=9)
