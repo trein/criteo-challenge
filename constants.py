@@ -2,8 +2,8 @@ import time
 import datetime
 
 
-# BASE_DIR = '/Users/trein/datasets/criteo/'
-BASE_DIR = 'criteo/'
+BASE_DIR = '/Users/trein/datasets/criteo/'
+# BASE_DIR = 'criteo/'
 
 CATEGORY_MAPPING_OUT = BASE_DIR + 'data/categorical_mapping.json.gz'
 CATEGORY_STATUS_OUT = BASE_DIR + 'data/categorical_status.json.gz'

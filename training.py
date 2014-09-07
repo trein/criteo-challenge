@@ -19,8 +19,8 @@ class Trainer(object):
 
     @constants.timed
     def train(self):
-        first = True
-        scaler = preprocessing.StandardScaler()
+        # first = True
+        # scaler = preprocessing.StandardScaler()
         with gzip.open(constants.TRAIN_EXPANDED, 'r') as source:
             reader = csv.reader(source)
             next(reader, None)
@@ -30,26 +30,28 @@ class Trainer(object):
             features = []
             for feature_vector in reader:
                 # ad_id = feature_vector[0]
-                s_features = []
-                for f in feature_vector[2:]:
-                    s_features.append(float(f) if f != '' else 0.0)
+                # s_features = []
+                # for f in feature_vector[2:]:
+                #     s_features.append(float(f) if f != '' else 0.0)
+                # features.append(s_features)
+                s_features = feature_vector[2:]
                 s_label = int(feature_vector[1])
                 features.append(s_features)
                 labels.append(s_label)
 
-                # print 'features', s_features
-                # print 'labels', s_label
+                print 'features', s_features
+                print 'labels', s_label
                 # print 'norm features', normalized_features
 
                 n_sample += 1
                 if n_sample % 100000 == 0:
-                    if first:
-                        normalized_features = scaler.fit_transform(features)
-                        first = False
-                    else:
-                        normalized_features = scaler.transform(features)
+                    # if first:
+                    #     normalized_features = scaler.fit_transform(features)
+                    #     first = False
+                    # else:
+                    #     normalized_features = scaler.transform(features)
 
-                    self.clf.partial_fit(normalized_features, labels)
+                    self.clf.partial_fit(features, labels)
                     features = []
                     labels = []
                     print 'Processing sample [%s]' % n_sample

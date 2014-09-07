@@ -14,16 +14,7 @@ c_features_status = {
     "C26": 9527, "C24": 12335, "C25": 51
 }
 
-selected_categorical_features = [
-    'C8',
-    'C5',
-    'C14',
-    'C17',
-    'C20',
-    'C22',
-    'C23',
-    'C25',
-]
+selected_categorical_features = ['C8', 'C5', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
 
 
 class DataSetBuilder(object):
@@ -58,60 +49,57 @@ class DataSetBuilder(object):
         self._expand_dataset(test_raw_file, test_expanded_file, test_c_id_to_index, test_i_id_to_index, limit)
 
     def _expand_dataset(self, raw_file, expanded_file, cat_conversion_func, int_conversion_func, limit):
-        with gzip.open(raw_file, 'r') as source:
-            with gzip.open(expanded_file, 'w') as destination:
-                reader = csv.reader(source)
-                writer = csv.writer(destination)
+        with gzip.open(raw_file, 'r') as source, gzip.open(expanded_file, 'w') as destination:
+            reader = csv.reader(source)
+            writer = csv.writer(destination)
 
-                # adjusting header
-                header = reader.next()[:limit]
+            # adjusting header
+            header = reader.next()[:limit]
+            for cat_id in selected_categorical_features:
+                options = self.category_mapping[cat_id]
+                options_len = len(options)
+                options_features = [None] * options_len
+
+                for option_value, option_index in options.iteritems():
+                    options_features[option_index] = '%s=%s' % (cat_id, option_value)
+                header += options_features
+            writer.writerow(header)
+
+            # adjusting features
+            n_sample = 0
+            for feature_vector in reader:
+                expanded_feature_vector = feature_vector[:limit]
+
+                n_sample += 1
+                if n_sample % 500000 == 0:
+                    print 'Processing sample [%s]' % n_sample
+
                 for cat_id in selected_categorical_features:
+                    cat_index = cat_conversion_func(cat_id)
                     options = self.category_mapping[cat_id]
                     options_len = len(options)
-                    options_features = [None] * options_len
+                    options_features = [0] * options_len
 
-                    for option_value, option_index in options.iteritems():
-                        options_features[option_index] = '%s=%s' % (cat_id, option_value)
-                    header += options_features
+                    feature_value = feature_vector[cat_index]
+                    option_index = options.get(feature_value, 0)
+                    options_features[option_index] = 1
+                    expanded_feature_vector += options_features
 
-                writer.writerow(header)
+                for int_id in constants.INTEGER_IDS:
+                    int_index = int_conversion_func(int_id)
+                    int_status = self.int_status[int_id]
+                    raw_current_value = expanded_feature_vector[int_index]
+                    current_value = float(raw_current_value) if raw_current_value != '' else 0.0
+                    # current_min = int_status[int_id]['min']
+                    current_max = int_status['max']
+                    current_sum = int_status['sum']
+                    current_count = int_status['count']
 
-                # adjusting features
-                n_sample = 0
-                for feature_vector in reader:
-                    expanded_feature_vector = feature_vector[:limit]
-
-                    n_sample += 1
-                    if n_sample % 500000 == 0:
-                        print 'Processing sample [%s]' % n_sample
-
-                    for cat_id in selected_categorical_features:
-                        cat_index = cat_conversion_func(cat_id)
-                        options = self.category_mapping[cat_id]
-                        options_len = len(options)
-                        options_features = [0] * options_len
-
-                        feature_value = feature_vector[cat_index]
-                        option_index = options.get(feature_value, 0)
-                        options_features[option_index] = 1
-                        expanded_feature_vector += options_features
-
-                    for int_id in constants.INTEGER_IDS:
-                        int_index = int_conversion_func(int_id)
-                        int_status = self.int_status[int_id]
-                        raw_current_value = expanded_feature_vector[int_index]
-                        current_value = float(raw_current_value) if raw_current_value != '' else 0.0
-                        # current_min = int_status[int_id]['min']
-                        current_max = int_status['max']
-                        current_sum = int_status['sum']
-                        current_count = int_status['count']
-
-                        if raw_current_value != '':
-                            expanded_feature_vector[int_index] = current_value / current_max
-                        else:
-                            expanded_feature_vector[int_index] = current_sum / current_count
-
-                    writer.writerow(expanded_feature_vector)
+                    if raw_current_value != '':
+                        expanded_feature_vector[int_index] = current_value / current_max
+                    else:
+                        expanded_feature_vector[int_index] = current_sum / current_count
+                writer.writerow(expanded_feature_vector)
 
 
 class DataSetAnalysis(object):
@@ -122,7 +110,7 @@ class DataSetAnalysis(object):
         category_mapping = {cat_id: {} for cat_id in constants.CATEGORIES_IDS}
         category_status = {cat_id: 0 for cat_id in constants.CATEGORIES_IDS}
         int_status = {int_id: {'max': 0.0, 'min': 1e4, 'count': 0.0, 'sum': 0.0} for int_id in constants.INTEGER_IDS}
-        
+
         self._worker(category_mapping, category_status, int_status)
         self._save(category_mapping, category_status, int_status)
 
@@ -154,7 +142,7 @@ class DataSetAnalysis(object):
                     if feature_vector[cat_index] not in category_mapping[int_id]:
                         category_mapping[int_id][feature_vector[cat_index]] = category_status[int_id]
                         category_status[int_id] += 1
-                        
+
                 for int_id in constants.INTEGER_IDS:
                     int_index = constants.convert_train_i_id_to_index(int_id)
                     raw_current_value = feature_vector[int_index]
