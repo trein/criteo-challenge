@@ -14,7 +14,8 @@ c_features_status = {
     "C26": 9527, "C24": 12335, "C25": 51
 }
 
-selected_categorical_features = ['C8', 'C5', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
+selected_categorical_features = ['C6', 'C9', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
+selected_categorical_features_red = ['C8', 'C5', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
 
 
 class DataSetBuilder(object):
@@ -30,7 +31,7 @@ class DataSetBuilder(object):
 
     @constants.timed
     def build(self):
-        print 'Starting dataset assembly...'
+        print 'Starting data set assembly...'
 
         print 'Building training set'
         train_c_id_to_index = constants.convert_train_c_id_to_index
@@ -90,7 +91,7 @@ class DataSetBuilder(object):
                     int_status = self.int_status[int_id]
                     raw_current_value = expanded_feature_vector[int_index]
                     current_value = float(raw_current_value) if raw_current_value != '' else 0.0
-                    # current_min = int_status[int_id]['min']
+                    # current_min = int_status['min']
                     current_max = int_status['max']
                     current_sum = int_status['sum']
                     current_count = int_status['count']
@@ -98,14 +99,14 @@ class DataSetBuilder(object):
                     if raw_current_value != '':
                         expanded_feature_vector[int_index] = current_value / current_max
                     else:
-                        expanded_feature_vector[int_index] = current_sum / current_count
+                        expanded_feature_vector[int_index] = current_sum / current_count / current_max
                 writer.writerow(expanded_feature_vector)
 
 
 class DataSetAnalysis(object):
     @constants.timed
     def process(self):
-        print 'Starting dataset analysis...'
+        print 'Starting data set analysis...'
 
         category_mapping = {cat_id: {} for cat_id in constants.CATEGORIES_IDS}
         category_status = {cat_id: 0 for cat_id in constants.CATEGORIES_IDS}
@@ -159,7 +160,7 @@ class DataSetAnalysis(object):
 
 
 def main():
-    DataSetAnalysis().process()
+    # DataSetAnalysis().process()
     DataSetBuilder().build()
 
 
