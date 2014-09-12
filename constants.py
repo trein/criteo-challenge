@@ -5,15 +5,20 @@ import datetime
 BASE_DIR = '/Users/trein/datasets/criteo/'
 # BASE_DIR = 'criteo/'
 
+MODEL_FILENAME = BASE_DIR + 'data/model.pkl'
+
 CATEGORY_MAPPING_OUT = BASE_DIR + 'data/categorical_mapping.json.gz'
 CATEGORY_STATUS_OUT = BASE_DIR + 'data/categorical_status.json.gz'
 INT_STATUS_OUT = BASE_DIR + 'data/int_status.json.gz'
 
 TRAIN_RAW = BASE_DIR + 'train.csv.gz'
 TRAIN_EXPANDED = BASE_DIR + 'data/train_expanded.csv.gz'
+VALIDATION_EXPANDED = BASE_DIR + 'data/valid_expanded.csv.gz'
 
 TEST_RAW = BASE_DIR + 'test.csv.gz'
 TEST_EXPANDED = BASE_DIR + 'data/test_expanded.csv.gz'
+
+EVALUATION = BASE_DIR + 'data/evaluation.csv.gz'
 
 LIMIT_CATEGORICAL = 15
 INTEGER_INDEXES = xrange(2, 15)
