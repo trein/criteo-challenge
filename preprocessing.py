@@ -14,8 +14,10 @@ c_features_status = {
     "C26": 9527, "C24": 12335, "C25": 51
 }
 
-selected_categorical_features = ['C6', 'C9', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
-selected_categorical_features_red = ['C8', 'C5', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
+selected_categorical_features = ['C1', 'C2', 'C5', 'C6', 'C8', 'C9', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
+selected_categorical_features_first = ['C6', 'C9', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
+selected_categorical_features_sec = ['C5', 'C6', 'C8', 'C9', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
+selected_categorical_features_red = ['C6', 'C9', 'C14', 'C17', 'C20', 'C22', 'C23', 'C25']
 
 
 class DataSetBuilder(object):
