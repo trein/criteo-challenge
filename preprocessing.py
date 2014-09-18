@@ -93,7 +93,6 @@ class DataSetBuilder(object):
                     int_status = self.int_status[int_id]
                     raw_current_value = expanded_feature_vector[int_index]
                     current_value = float(raw_current_value) if raw_current_value != '' else 0.0
-                    # current_min = int_status['min']
                     current_max = int_status['max']
                     current_sum = int_status['sum']
                     current_count = int_status['count']
