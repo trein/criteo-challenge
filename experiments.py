@@ -14,10 +14,6 @@ def balanced():
 
         for feature_vector in reader:
             click = feature_vector[1]
-
-            ad_id = feature_vector[0]
-            features = feature_vector[2:]
-
             with_click = with_click + 1 if click == 1 else with_click
             n_samples += 1
 
@@ -31,24 +27,13 @@ def normalized():
         reader = csv.reader(source)
         next(reader, None)
 
-        n_samples = 0
-        with_click = 0
-
         for feature_vector in reader:
-            click = feature_vector[1]
-
-            ad_id = feature_vector[0]
             features = feature_vector[2:]
-
             for f in features:
                 if float(f) > 1.0:
                     print 'Not normalized features'
                     print features
                     break
-
-        # print 'Experiments results'
-        # print '-------------------'
-        # print 'Clicks [%s] out of [%s] - [%s] with click' % (with_click, n_samples, float(with_click) / n_samples)
 
 
 if __name__ == '__main__':
